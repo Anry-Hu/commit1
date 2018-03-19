@@ -8,11 +8,11 @@
 #include<Windows.h>
 using namespace std;
 
-int num, char_num, word_num, line_num, code_line, blank_line, comment_line, id_num;
-bool start;
-char token[20], rwtab[10][20];
+int num, char_num, word_num, line_num, code_line, blank_line, comment_line, id_num; //储存相应的数目
+bool start; //一个开始状态，一些情况需要使用
+char token[20], rwtab[10][20]; //token是临时字符组，rwtab来保存停用词表里面的词
 
-bool isLetter(char c) {
+bool isLetter(char c) { //判断是否为字母
 	if ((c >= 'a'&&c <= 'z') || (c >= 'A'&&c <= 'Z')) {
 		return true;
 	}
@@ -20,7 +20,7 @@ bool isLetter(char c) {
 		return false;
 }
 
-bool isDigit(char c) {
+bool isDigit(char c) { //判断是否为数字
 	if (c >= '0'&&c <= '9') {
 		return true;
 	}
@@ -28,21 +28,21 @@ bool isDigit(char c) {
 		return false;
 }
 
-void test_c(char *str) {
+void test_c(char *str) { //字符函数
 	char c;
-	char_num = 0;
-	ifstream infile(str);
-	if (!infile) {
+	char_num = 0; //初始化字符的数量
+	ifstream infile(str); //打开文件
+	if (!infile) { //检测文件是否打开
 		cout << "error" << endl;
 	}
-	while ((c = infile.get()) != EOF) {
-		char_num++;
+	while ((c = infile.get()) != EOF) { //从文件中读取数据
+		char_num++; //每读取一个字符就加一
 	}
 	cout << str << "," << "字符数 = " << char_num << endl;
-	infile.close();
+	infile.close(); //关闭文件
 }
 
-void test_w(char *str) {
+void test_w(char *str) { //单词函数
 	char c;
 	word_num = 0;
 	ifstream infile(str);
@@ -51,15 +51,15 @@ void test_w(char *str) {
 	}
 	c = infile.get();
 	while (c != EOF) {
-		while (c == ' ' || c == '\n' || c == '\t') {
+		while (c == ' ' || c == '\n' || c == '\t') { //如果是这三个符号就跳过
 			c = infile.get();
 		}
 
-		if (isLetter(c)) {
+		if (isLetter(c)) { //检测为单词时的处理情况
 			do {
-				c = infile.get();
+				c = infile.get(); //到下面的状态时单词截止
 			} while (c != '\n'&&c != '\t'&&c != ' '&&c != ';'&&c != ','&&c != '('&&c != ')'&&c != EOF);   //标识符
-			word_num++;
+			word_num++; //单词数加一
 			continue;
 		}
 		c = infile.get();
@@ -68,7 +68,7 @@ void test_w(char *str) {
 	infile.close();
 }
 
-void test_l(char *str) {
+void test_l(char *str) { //行数函数
 	char c;
 	line_num = 1;
 	ifstream infile(str);
@@ -77,14 +77,14 @@ void test_l(char *str) {
 	}
 	while ((c = infile.get()) != EOF) {
 		if (c == '\n') {
-			line_num++;
+			line_num++; //出现换行变加一
 		}
 	}
 	cout << str << "," << "行数 = " << line_num << endl;
 	infile.close();
 }
 
-void test_ll(char *str) {
+void test_ll(char *str) { //行数函数的拷贝函数
 	char c;
 	line_num = 1;
 	ifstream infile(str);
@@ -93,15 +93,15 @@ void test_ll(char *str) {
 	}
 	while ((c = infile.get()) != EOF) {
 		if (c == '\n') {
-			line_num++;
+			line_num++; //这里少了输出
 		}
 	}
 	infile.close();
 }
 
-void test_a(char *str) {
-	test_ll(str);
-	num = 0; code_line = 1; comment_line = 0;
+void test_a(char *str) { //代码行/空行/注释行的计算
+	test_ll(str); //总行数计算
+	num = 0; code_line = 1; comment_line = 0; //初始化
 	char c;
 	int sum = 0, sum1 = 0;
 	ifstream infile(str);
@@ -109,19 +109,19 @@ void test_a(char *str) {
 	if (!infile || !infile2) {
 		cout << "error" << endl;
 	}
-	while ((c = infile.get()) != EOF) {
+	while ((c = infile.get()) != EOF) { //计算空行
 		if (c != '\t'&&c != ' ') {
 			num++;
 		}
 		if (c == '\n') {
 			num--;
-			if (num <= 1) {
+			if (num <= 1) { //字符少于等于一便为空行
 				blank_line++;
 			}
 			num = 0;
 		}
 	}
-	while ((c = infile2.get()) != EOF) {
+	while ((c = infile2.get()) != EOF) { //计算注释行
 		if (c != '\t'&&c != ' '&&c != '/'&&c != '*') {
 			sum1++;
 		}
@@ -133,7 +133,7 @@ void test_a(char *str) {
 			c = infile2.get();
 			if (c == '/') {
 				comment_line++;
-				if (sum1 > 1) {
+				if (sum1 > 1) { //本人的划分原则里，有种情况是某行既是注释行也是代码行，这里通过sum1来进行区分，详细的行数划分原则上面已写
 					sum++;
 				}
 			}
@@ -155,7 +155,7 @@ void test_a(char *str) {
 								break;
 							}
 							if (c != '\n') {
-								comment_line--;
+								comment_line--; //因为*/codeline是属于代码行，所以出现这种情况时，需要去掉
 								break;
 							}
 							else {
@@ -170,25 +170,25 @@ void test_a(char *str) {
 			}
 		}	
 	}
-	code_line = line_num - comment_line - blank_line + sum;
+	code_line = line_num - comment_line - blank_line + sum; //计算代码行的公式
 	cout << str << "," << "代码行/空行/注释行 = " << code_line << "/" << blank_line << "/" << comment_line << endl;
 	infile.close();
 	infile2.close();
 }
 
-void test_e(char *str) {
+void test_e(char *str) { //停用词表的使用，与单词函数大同小异
 	char c;
 	int m, n, sum;
 	id_num = 0;
 	ifstream infile(str);
-	ifstream infile2("stoplist.txt");
+	ifstream infile2("stoplist.txt"); //遍历停用词表
 	if (!infile || !infile2) {
 		cout << "error" << endl;
 	}
 
 	m = n = sum = 0;
 	c = infile2.get();
-	while (c != EOF) {
+	while (c != EOF) { //获取停用词表里面的单词
 		if (isLetter(c)) {
 			do {
 				rwtab[sum][n++] = c;
@@ -205,7 +205,7 @@ void test_e(char *str) {
 	c = infile.get();
 	while (c != EOF) {
 		for (m = 0; m < 20; m++) {
-			token[m] = '\0';
+			token[m] = '\0'; //临时单词
 		}
 		m = 0;
 
@@ -220,7 +220,7 @@ void test_e(char *str) {
 			} while (isLetter(c) || isDigit(c)); //标识符
 			token[m] = '\0';
 			for (n = 0; n < sum; n++) {
-				if (strcmp(token, rwtab[n]) == 0) {
+				if (strcmp(token, rwtab[n]) == 0) { //进行比较，如果属于停用词表，则不进行计算
 					id_num--;
 					break;
 				}
@@ -235,8 +235,8 @@ void test_e(char *str) {
 	infile2.close();
 }
 
-void test_o(char *str) {
-	ofstream outfile(str);
+void test_o(char *str) { //-o输出功能
+	ofstream outfile(str,ios::app);
 	outfile << "字符数 = " << char_num << endl;
 	outfile << "单词数 = " << word_num << endl;
 	outfile << "行数 = " << line_num << endl;
@@ -247,12 +247,12 @@ void test_o(char *str) {
 
 void main() {
 	char ch;
-	char name[10][1000];
-	bool s1, s2, s3, s4, s5, s6, s7, s8, s9;
-	s1 = s2 = s3 = s4 = s5 = s6 = s7 = s8 = s9 = false;
+	char name[10][1000]; //储存文件名
+	bool s1, s2, s3, s4, s5, s6, s7, s8, s9; //保存每个功能的状态
+	s1 = s2 = s3 = s4 = s5 = s6 = s7 = s8 = s9 = false; //初始化
 	int sum = 0, i;
 	num = 0;
-	while (1) {
+	while (1) { //对输入进行检测，并且通过回车结束输入
 		ch = getchar();
 		if (ch == ' ' || ch == '\t') {
 			continue;
@@ -282,8 +282,8 @@ void main() {
 			}
 			else if (ch == 'x') {
 				s8 = true;
-			}
-			else if (ch == 'z') {
+			} 
+			else if (ch == 'z') { //调用exe程序
 				WinExec("MFCtesting.exe", SW_SHOWNORMAL);
 				return;
 			}
@@ -311,13 +311,12 @@ void main() {
 		}
 	}
 
-	if (s9 == true) {
+	if (s9 == true) { //*.***功能的使用，遍历所有后缀名为***的文件
 		const char *to_search = name[0];        //欲查找的文件，支持通配符
-		char *search;
 		start = false;
 		if (sum > 1) {
 			start = true;
-			search = name[1];
+			strcpy(name[9], name[sum - 1]);
 		}
 		long handle;                                                //用于查找的句柄
 		struct _finddata_t fileinfo;                          //文件信息的结构体
@@ -332,13 +331,13 @@ void main() {
 			strcpy(name[sum++], fileinfo.name);
 		}
 		if (start == true) {
-			strcpy(name[sum++], search);
+			strcpy(name[sum++], name[9]);
 		}
 		_findclose(handle);                                      //关闭句柄
 	}
 
-	if (s8 == false) {
-		if (s6 == false && s1 == true && s9 == false) {
+	if (s8 == false) { //进行判断，并且决定调用哪个功能
+		if (s6 == false && s1 == true && s9 == false) { //如果没有-s，默认只使用第一个文件
 			test_c(name[0]);
 		}
 
@@ -358,7 +357,7 @@ void main() {
 			test_e(name[0]);
 		}
 
-		if (s6 == true || s9 == true) {
+		if (s6 == true || s9 == true) { //有-s，则递归调用文件
 			if (s7 == false) {
 				for (i = 0; i < sum; i++) {
 					if (s1 == true) {
@@ -404,7 +403,7 @@ void main() {
 						test_e(name[i]);
 					}
 
-					ofstream outfile(name[sum - 1]);
+					ofstream outfile(name[sum - 1],ios::app);
 					outfile << name[i] << ":" << endl;
 					outfile.close();
 					test_o(name[sum - 1]);
@@ -413,13 +412,13 @@ void main() {
 		}
 
 		if (s7 == true && s6 == false) {
-			ofstream outfile(name[sum - 1]);
+			ofstream outfile(name[sum - 1],ios::app);
 			outfile << name[0] << ":" << endl;
 			outfile.close();
 			test_o(name[sum - 1]);
 		}
 	}
-	else {
+	else { //最开始是对-x的判断，因为如果有-x，那么就是自己来选择文件，所以这个功能的判断需要放第一，下面就是调用打开文件程序的代码
 		OPENFILENAME ofn;      // 公共对话框结构。     
 		TCHAR szFile[MAX_PATH]; // 保存获取文件名称的缓冲区。               
 								// 初始化选择文件对话框。     
