@@ -1,0 +1,11 @@
+-c charwithspace.c
+-w char.c
+-c -w -l char.c charwithspace.c
+-c -w -l -s char.c charwithspace.c
+-c -w -l -a -e -s char.c charwithspace.c
+-w word.c
+-a atest.c
+-x -c 
+-c -e stop.c
+-c -w -l -a -e -s *.c -o outfile.txt
+-z
