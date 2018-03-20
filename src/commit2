@@ -1,0 +1,307 @@
+﻿#commit 2
+  本次提交在上次的基础上，实现了注释符和停用词表两个功能，并且可以通过-a,-e等来选择程序实现的功能。
+  单词计数仍为上次说的方法计数，但是停用词表里面的计数是计算标识符的数量，并且在停用词表里面的单词不进行计算。
+  难点：
+  首先是实现功能的选择，一开始通过-a这些来选择功能，但是发现无法一次性调用所有功能，比如-a -l一次可以实现两个功能，如果采用分支判断将会是一个巨大的工
+作量。所以这里用state来保存状态，比如说命令行里有-a，它的状态就为true，检测它的状态，发现是true，就可以调用。
+  其它功能的实现类似词法分析，而且是词法分析的简版。每次通过在文件中读入一个字符，然后开始作判断，比如这个属于什么情况，那个属于什么情况，然后进行不同
+的功能即可。
+  如何让停用词表里面的单词不计数？通过词法分析，得到的字符串与词表里面的单词比较，一样，自然就不计数。
+  注释符有两种，//，/**/，//非常好计数，直接计算便可，/*计数时，每出现一个换行符，自然多一行，然后检测结尾*/便可，有种情况是/**/里面嵌套//，我没有考
+虑。因为我觉得多此一举，没有人会在/**/里面再去加//，这样毫无意义。
+  空行加上代码行就是总行数，所以求出代码行，二者相减便得空行数。
+
+  代码如下：
+#include<iostream>
+#include<fstream>
+#include<string>
+using namespace std;
+
+/*void test-c() {
+	char c;
+	int char_num, word_num, line_num;
+	char_num = word_num = line_num = 0;
+	bool state, start;
+	state = start = true;
+	ifstream infile("file.txt");
+	ofstream outfile("outfile.txt");
+	if (!infile) {
+		cout << "error" << endl;
+	}
+	while ((c = infile.get()) != EOF) {
+		char_num++;
+		if (c == '\n') {
+			line_num++;
+		}
+		if (c == '\n' || c == '\t' || c == ' ' || c == ',') {
+			state = false;
+			start = false;
+			continue;
+		}
+		else if (state == false) {
+			state = true;
+			word_num++;
+		}
+		else if (start == true && state == true) {
+			start = false;
+			word_num++;
+		}
+	}
+	outfile << "line_num = " << line_num << endl;
+	outfile << "word_num = " << word_num << endl;
+	outfile << "char_num = " << char_num << endl;
+	infile.close();
+}*/
+
+int num, char_num, word_num, line_num, code_line, blank_line, comment_line, id_num;
+bool state, start;
+char token[20], rwtab[10][20];
+
+void test_c(char *str) {
+	char c;
+	char_num = 0;
+	ifstream infile(str);
+	if (!infile) {
+		cout << "error" << endl;
+	}
+	while ((c = infile.get()) != EOF) {
+		char_num++;
+	}
+	cout << "字符数 = " << char_num << endl;
+	infile.close();
+}
+
+void test_w(char *str) {
+	char c;
+	word_num = 0;
+	state = start = true;
+	ifstream infile(str);
+	if (!infile) {
+		cout << "error" << endl;
+	}
+	while ((c = infile.get()) != EOF) {
+		if (c == '\n' || c == '\t' || c == ' ' || c == ',') {
+			state = false;
+			start = false;
+			continue;
+		}
+		else if (state == false) {
+			state = true;
+			word_num++;
+		}
+		else if (start == true && state == true) {
+			start = false;
+			word_num++;
+		}
+	}
+	cout << "单词数 = " << word_num << endl;
+	infile.close();
+}
+
+void test_l(char *str) {
+	char c;
+	line_num = 1;
+	ifstream infile(str);
+	if (!infile) {
+		cout << "error" << endl;
+	}
+	while ((c = infile.get()) != EOF) {
+		if (c == '\n') {
+			line_num++;
+		}
+	}
+	cout << "行数 = " << line_num << endl;
+	infile.close();
+}
+
+void test_ll(char *str) {
+	char c;
+	line_num = 1;
+	ifstream infile(str);
+	if (!infile) {
+		cout << "error" << endl;
+	}
+	while ((c = infile.get()) != EOF) {
+		if (c == '\n') {
+			line_num++;
+		}
+	}
+	infile.close();
+}
+
+void test_a(char *str) {
+	test_ll(str);
+	num = 0; code_line = 1; comment_line = 0;
+	char c;
+	ifstream infile(str);
+	ifstream infile2(str);
+	if (!infile || !infile2) {
+		cout << "error" << endl;
+	}
+	while ((c = infile.get()) != EOF) {
+		if (c != '\t'&&c != ' ') {
+			num++;
+		}
+		if (c == '\n') {
+			num--;
+			if (num > 1) {
+				code_line++;
+			}
+			num = 0;
+		}
+	}
+	while ((c = infile2.get()) != EOF) {
+		if (c == '/') {
+			c = infile2.get();
+			if (c == '/') {
+				comment_line++;
+			}
+			else if (c == '*') {
+				comment_line++;
+				while ((c = infile2.get()) != EOF) {
+					if (c == '\n') {
+						comment_line++;
+					}
+					else if (c == '*') {
+						c = infile2.get();
+						if (c == '/') {
+							break;
+						}
+						else {
+							cout << "注释符出错" << endl;
+						}
+					}
+				}
+			}
+		}
+	}
+	blank_line = line_num - code_line;
+	cout << "代码行/空行/注释行 = " << code_line << "/" << blank_line << "/" << comment_line << endl;
+	infile.close();
+	infile2.close();
+}
+
+bool isLetter(char c) {
+	if ((c >= 'a'&&c <= 'z') || (c >= 'A'&&c <= 'Z')) {
+		return true;
+	}
+	else
+		return false;
+}
+
+bool isDigit(char c) {
+	if (c >= '0'&&c <= '9') {
+		return true;
+	}
+	else
+		return false;
+}
+
+void test_e(char *str) {
+	char c;
+	int m;
+	id_num = 0;
+	ifstream infile(str);
+	if (!infile) {
+		cout << "error" << endl;
+	}
+	c = infile.get();
+	while (c != EOF) {
+		for (m = 0; m < 20; m++) {
+			token[m] = '\0';
+		}
+		m = 0;
+
+		while (c == ' ' || c == '\n' || c == '\t') {
+			c = infile.get();
+		}
+
+		if (isLetter(c)) {
+			do {
+				token[m++] = c;
+				c = infile.get();
+			} while (isLetter(c) || isDigit(c)); //标识符
+			token[m] = '\0';
+			for (int n = 0; n < 1; n++) {
+				if (strcmp(token, rwtab[n]) == 0) {
+					id_num--;
+					break;
+				}
+			}
+			id_num++;
+			continue;
+		}
+		c = infile.get();
+	}
+	cout << "标识符 = " << id_num << endl;
+	infile.close();
+}
+
+void main() {
+	char ch;
+	char name[10][1000];
+	bool s1, s2, s3, s4, s5, s6, s7;
+	s1 = s2 = s3 = s4 = s5 = s6 = s7 = false;
+	int sum = 0;
+	num = 0;
+	strcpy(rwtab[0], "begin");
+	strcpy(name[0], "file.txt");
+	test_e(name[0]);
+	/*while (1) {
+		ch = getchar();
+		if (ch == ' ' || ch == '\t') {
+			continue;
+		}
+		else if (ch == '-') {
+			ch = getchar();
+			if (ch == 'c') {
+				s1 = true;
+			}
+			else if (ch == 'w') {
+				s2 = true;
+			}
+			else if (ch == 'l') {
+				s3 = true;
+			}
+			else if (ch == 'a') {
+				s4 = true;
+			}
+		}
+		else if (ch == '\n') {
+			break;
+		}
+		else {
+			name[sum][num++] = ch;
+			while (1) {
+				ch = getchar();
+				if (ch == ' ' || ch == '\t' || ch == '\n') {
+					break;
+				}
+				else {
+					name[sum][num++] = ch;
+				}
+			}
+			name[sum][num] = '\0';
+			sum++;
+			num = 0;
+		}
+	}
+
+	if (s1 == true) {
+		test_c(name[0]);
+	}
+
+	if (s2 == true) {
+		test_w(name[0]);
+	}
+
+	if (s3 == true) {
+		test_l(name[0]);
+	}
+
+	if (s4 == true) {
+		test_a(name[0]);
+	}*/
+
+	system("pause");
+}
